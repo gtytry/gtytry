@@ -24,6 +24,12 @@ class AnalysisService:
         analysis_repo: AnalysisRepository,
     ) -> SalesQAResult:
         ocr_text = await self.ocr.extract_dialog(image_paths)
+        if not self.analyzer.settings.openai_enabled:
+            result = self.fallback.analyze(ocr_text)
+            manager = await manager_repo.get_or_create(telegram_user_id, username, full_name)
+            await analysis_repo.save(manager, session_id, result, ocr_text, len(image_paths))
+            return result
+
         try:
             result = await self.analyzer.analyze(image_paths=image_paths, ocr_text=ocr_text)
         except Exception:
