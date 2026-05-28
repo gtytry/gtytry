@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     render_external_url: str = ""
 
     openai_api_key: str = Field(..., min_length=10)
+    openai_enabled: bool = True
     openai_model: str = "gpt-4o"
     openai_max_output_tokens: int = 1800
     openai_timeout_seconds: float = 35.0
