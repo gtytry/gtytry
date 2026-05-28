@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: ai-sales-qa-agent
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      - key: BOT_MODE
+        value: webhook
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o
+      - key: OPENAI_MAX_OUTPUT_TOKENS
+        value: "1800"
+      - key: WEBHOOK_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        value: sqlite+aiosqlite:///./data/sales_qa.sqlite3
+      - key: OCR_LANGUAGE
+        value: rus+eng
+      - key: MAX_IMAGES_PER_SESSION
+        value: "10"
+      - key: MAX_IMAGE_MB
+        value: "15"
+      - key: SESSION_TTL_MINUTES
+        value: "30"
+      - key: ALBUM_DEBOUNCE_SECONDS
+        value: "4"
+      - key: RATE_LIMIT_PER_MINUTE
+        value: "6"
+      - key: DELETE_IMAGES_AFTER_ANALYSIS
+        value: "true"
+      - key: ADMIN_USER_IDS
+        sync: false
