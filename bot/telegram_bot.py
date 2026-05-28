@@ -68,7 +68,7 @@ def create_dispatcher(context: BotContext) -> Dispatcher:
 
     @router.message(Command("done"))
     async def done(message: Message) -> None:
-        session = context.sessions.pop(message.from_user.id)
+        session = context.sessions.pop(message.from_user.id) or context.sessions.pop_album_for_user(message.from_user.id)
         if not session or not session.image_paths:
             await message.answer("Пока нет скриншотов для анализа. Отправьте фото или альбом.")
             return
@@ -130,6 +130,8 @@ async def handle_image_message(
             path.unlink(missing_ok=True)
             await message.answer(str(exc))
             return
+        if len(session.image_paths) == 1:
+            await message.answer("✅ Альбом получен. Я соберу все скриншоты и сам запущу анализ через пару секунд.")
         schedule_album_analysis(message, context)
         return
 
