@@ -1,0 +1,11 @@
+services:
+  sales-qa-agent:
+    build: .
+    container_name: sales-qa-agent
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
