@@ -31,6 +31,7 @@ bot_context = BotContext(
     image_store=ImageStore(settings),
     rate_limiter=InMemoryRateLimiter(settings.rate_limit_per_minute),
     album_tasks={},
+    analysis_tasks=set(),
 )
 dispatcher = create_dispatcher(bot_context)
 
