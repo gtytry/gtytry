@@ -9,6 +9,7 @@ Production-like Telegram bot + FastAPI backend that evaluates manager-client cha
 - Extracts Russian/English OCR text with Tesseract.
 - Sends OCR text plus original screenshots to OpenAI Vision.
 - Scores sales quality from 0 to 100 across 10 criteria.
+- Falls back to a free OCR-based rule score when OpenAI is unavailable.
 - Stores every evaluation in SQLite.
 - Deletes uploaded screenshots after analysis by default.
 - Provides `/stats` admin leaderboard: average score, top mistakes, best and worst manager.
