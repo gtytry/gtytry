@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, computed_field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -33,20 +33,21 @@ class Settings(BaseSettings):
     rate_limit_per_minute: int = 6
     delete_images_after_analysis: bool = True
 
-    admin_user_ids: set[int] = Field(default_factory=set)
+    admin_user_ids_raw: str = Field(default="", alias="ADMIN_USER_IDS")
 
-    @field_validator("admin_user_ids", mode="before")
+    @field_validator("admin_user_ids_raw", mode="before")
     @classmethod
-    def parse_admins(cls, value: object) -> set[int]:
+    def normalize_admins(cls, value: object) -> str:
         if value in (None, ""):
-            return set()
-        if isinstance(value, set):
-            return value
+            return ""
         if isinstance(value, str):
-            return {int(item.strip()) for item in value.split(",") if item.strip()}
-        if isinstance(value, list):
-            return {int(item) for item in value}
+            return value
         raise ValueError("ADMIN_USER_IDS must be comma-separated integers")
+
+    @computed_field
+    @property
+    def admin_user_ids(self) -> set[int]:
+        return {int(item.strip()) for item in self.admin_user_ids_raw.split(",") if item.strip()}
 
     @property
     def webhook_url(self) -> str:
