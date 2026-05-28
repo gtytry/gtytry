@@ -1,23 +1,27 @@
 import base64
 import json
+import logging
 from pathlib import Path
 
-from openai import AsyncOpenAI
-from tenacity import retry, stop_after_attempt, wait_exponential
+from openai import APIConnectionError, APITimeoutError, AsyncOpenAI
 
 from ai.schemas import SalesQAResult
 from config.settings import Settings
+
+logger = logging.getLogger(__name__)
 
 
 class SalesQAAnalyzer:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
-        self.client = AsyncOpenAI(api_key=settings.openai_api_key)
+        self.client = AsyncOpenAI(api_key=settings.openai_api_key, timeout=settings.openai_timeout_seconds)
         prompt_path = Path(__file__).resolve().parents[1] / "prompts" / "sales_qa_system.md"
         self.system_prompt = prompt_path.read_text(encoding="utf-8")
 
-    @retry(wait=wait_exponential(multiplier=1, min=1, max=8), stop=stop_after_attempt(3), reraise=True)
     async def analyze(self, image_paths: list[Path], ocr_text: str) -> SalesQAResult:
+        if self.settings.openai_api_key == "sk-replace-me":
+            raise RuntimeError("OpenAI API key is not configured")
+
         content: list[dict[str, object]] = [
             {
                 "type": "text",
@@ -39,16 +43,20 @@ class SalesQAAnalyzer:
                 }
             )
 
-        response = await self.client.chat.completions.create(
-            model=self.settings.openai_model,
-            messages=[
-                {"role": "system", "content": self.system_prompt},
-                {"role": "user", "content": content},
-            ],
-            temperature=0.1,
-            max_tokens=self.settings.openai_max_output_tokens,
-            response_format={"type": "json_object"},
-        )
+        try:
+            response = await self.client.chat.completions.create(
+                model=self.settings.openai_model,
+                messages=[
+                    {"role": "system", "content": self.system_prompt},
+                    {"role": "user", "content": content},
+                ],
+                temperature=0.1,
+                max_tokens=self.settings.openai_max_output_tokens,
+                response_format={"type": "json_object"},
+            )
+        except (APITimeoutError, APIConnectionError):
+            logger.exception("OpenAI connection failed")
+            raise
 
         raw = response.choices[0].message.content or "{}"
         return SalesQAResult.model_validate(json.loads(raw))
