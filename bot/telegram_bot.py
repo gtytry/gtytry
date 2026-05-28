@@ -30,6 +30,7 @@ class BotContext:
     image_store: ImageStore
     rate_limiter: InMemoryRateLimiter
     album_tasks: dict[str, asyncio.Task]
+    analysis_tasks: set[asyncio.Task]
 
 
 def create_bot(settings: Settings) -> Bot:
@@ -72,7 +73,7 @@ def create_dispatcher(context: BotContext) -> Dispatcher:
         if not session or not session.image_paths:
             await message.answer("Пока нет скриншотов для анализа. Отправьте фото или альбом.")
             return
-        await analyze_session(message, session, context)
+        await enqueue_analysis(message, session, context)
 
     @router.message(Command("stats"))
     async def stats(message: Message) -> None:
@@ -164,15 +165,21 @@ async def delayed_album_analysis(message: Message, media_group_id: str, context:
         await asyncio.sleep(context.settings.album_debounce_seconds)
         session = context.sessions.pop_album(media_group_id)
         if session and session.image_paths:
-            await analyze_session(message, session, context)
+            await enqueue_analysis(message, session, context)
     except asyncio.CancelledError:
         return
     finally:
         context.album_tasks.pop(media_group_id, None)
 
 
-async def analyze_session(message: Message, session: AnalysisSession, context: BotContext) -> None:
+async def enqueue_analysis(message: Message, session: AnalysisSession, context: BotContext) -> None:
     await message.answer(f"🔎 Анализирую {len(session.image_paths)} скриншот(ов). Это может занять до минуты.")
+    task = asyncio.create_task(analyze_session(message, session, context))
+    context.analysis_tasks.add(task)
+    task.add_done_callback(context.analysis_tasks.discard)
+
+
+async def analyze_session(message: Message, session: AnalysisSession, context: BotContext) -> None:
     user = message.from_user
     full_name = " ".join(part for part in [user.first_name, user.last_name] if part) or None
 
