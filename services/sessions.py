@@ -51,6 +51,12 @@ class SessionManager:
     def pop_album(self, media_group_id: str) -> AnalysisSession | None:
         return self._albums.pop(media_group_id, None)
 
+    def pop_album_for_user(self, user_id: int) -> AnalysisSession | None:
+        for media_group_id, session in list(self._albums.items()):
+            if session.user_id == user_id:
+                return self._albums.pop(media_group_id)
+        return None
+
     def cancel(self, user_id: int) -> AnalysisSession | None:
         return self._sessions.pop(user_id, None)
 
